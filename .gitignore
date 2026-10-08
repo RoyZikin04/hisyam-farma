@@ -1,0 +1,42 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js build output
+/.next/
+/out/
+
+# Production
+/build
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript cache
+*.tsbuildinfo
+next-env.d.ts
+
+# SQLite Database & Journal
+prisma/*.db
+prisma/*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Temporary spreadsheets & test artifacts
+temp_*.xlsx
+test_*.xlsx
+sample_*.xlsx

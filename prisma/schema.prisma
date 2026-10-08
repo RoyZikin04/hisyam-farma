@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String      @id @default(cuid())
+  nama      String
+  username  String      @unique
+  password  String
+  role      String      // ADMIN | KASIR
+  aktif     Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  transaksi Transaksi[]
+
+  @@map("users")
+}
+
+model Penjualan {
+  id            String          @id @default(cuid())
+  kode_barang   String          @unique
+  nama_barang   String
+  satuan        String
+  stok          Int             @default(0)
+  harga_beli    Int             @default(0)
+  diskon_persen Float           @default(0.0)
+  ppn_persen    Float           @default(0.0)
+  harga_pokok   Int             @default(0)
+  harga_bebas   Int             @default(0)
+  harga_resep   Int             @default(0)
+  harga_grosir  Int             @default(0)
+  aktif         Boolean         @default(true) // soft delete
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  items         TransaksiItem[]
+
+  @@map("penjualan")
+}
+
+model Transaksi {
+  id            String          @id @default(cuid())
+  no_transaksi  String          @unique
+  tipe          String          // MASUK | KELUAR
+  tanggal       DateTime        @default(now())
+  user_id       String
+  user          User            @relation(fields: [user_id], references: [id])
+  grand_total   Int             @default(0)
+  nominal_bayar Int?            // nullable untuk MASUK
+  kembalian     Int?            // nullable untuk MASUK
+  keterangan    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  items         TransaksiItem[]
+
+  @@map("transaksi")
+}
+
+model TransaksiItem {
+  id           String    @id @default(cuid())
+  transaksi_id String
+  transaksi    Transaksi @relation(fields: [transaksi_id], references: [id], onDelete: Cascade)
+  penjualan_id String
+  penjualan    Penjualan @relation(fields: [penjualan_id], references: [id])
+  kode_barang  String
+  nama_barang  String
+  jenis_harga  String?   // nullable untuk MASUK; BEBAS | RESEP | GROSIR untuk KELUAR
+  qty          Int
+  harga_satuan Int       // harga beli untuk MASUK; harga jual untuk KELUAR
+  subtotal     Int
+  createdAt    DateTime  @default(now())
+
+  @@map("transaksi_item")
+}
+
+model Pengaturan {
+  id                    String   @id @default("default")
+  nama_toko             String   @default("Apotek & Toko Berkah")
+  alamat                String   @default("Jl. Sehat Makmur No. 12, Jakarta")
+  telepon               String   @default("0812-3456-7890")
+  footer_struk          String   @default("Terima kasih atas kunjungan Anda. Semoga lekas sembuh!")
+  default_markup_bebas  Float    @default(25.0)
+  default_markup_resep  Float    @default(35.0)
+  default_markup_grosir Float    @default(15.0)
+  pembulatan            Int      @default(100) // 1, 50, 100, 500
+  ukuran_kertas         String   @default("80mm") // 58mm, 80mm, A4
+  updatedAt             DateTime @updatedAt
+
+  @@map("pengaturan")
+}

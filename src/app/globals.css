@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 241, 245, 249;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimasi Cetak Struk & Batch Print */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Sembunyikan semua elemen default saat mencetak */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Hanya tampilkan area struk */
+  #area-cetak-struk,
+  #area-cetak-struk * {
+    visibility: visible;
+  }
+
+  #area-cetak-struk {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Sembunyikan tombol aksi modal */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Page break antar struk saat batch print */
+  .struk-page-break {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .struk-page-break:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
