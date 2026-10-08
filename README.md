@@ -30,6 +30,11 @@ Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (
   - Cetak bersih terisolasi CSS `@media print` bebas margin browser dan elemen dashboard.
   - Fitur **Cetak Batch Massal** dengan pemisahan halaman otomatis (`struk-page-break`) tanpa batas jumlah transaksi.
   - Tombol dan shortcut pintasan **Cetak Struk (P)** langsung pada terminal kasir.
+- **Dashboard & Analitik Grafik (Chart.js)**:
+  - 5 Kartu KPI Statistik: Omzet Hari Ini, Omzet Bulan Ini, Estimasi Laba Kotor (Profit), Volume Transaksi, dan Peringatan Stok Menipis.
+  - 4 Grafik Visualisasi Interaktif: Tren Penjualan vs Pengadaan, Doughnut Penjualan per Jenis Harga (Bebas/Resep/Grosir), Top 10 Obat Terlaris, dan Performa Kinerja Kasir.
+  - Filter rentang waktu dinamis: 7 Hari Terakhir, 30 Hari Terakhir, Bulan Ini, dan Tanggal Kustom.
+  - Widget tabel peringatan obat dengan stok menipis (≤ 10) atau habis (0) dengan tautan aksi restock instan.
 
 ---
 
