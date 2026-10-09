@@ -1,14 +1,14 @@
 # Hisyam Farma - Sistem Penjualan & Stok Barang (POS & Inventori)
 
-Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (Point of Sale / POS) dan manajemen inventori stok barang/obat apotek dan toko.
+Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (Point of Sale / POS) dan manajemen inventori stok barang/obat apotek dan toko ritel.
 
 ---
 
 ## 🚀 Fitur Utama
 
-- **Autentikasi & Multi-Role**:
+- **Autentikasi & Multi-Role (RBAC)**:
   - Role **ADMIN** (akses penuh dashboard, master barang, restock masuk, import/export, pengaturan toko, kelola pengguna).
-  - Role **KASIR** (antarmuka terminal POS kasir cepat dan riwayat struk).
+  - Role **KASIR** (antarmuka terminal POS kasir cepat dan riwayat struk, terisolasi secara otomatis dari modul admin).
   - Keamanan sesi HTTP-Only cookie, password hash bcryptjs, rate limiter proteksi brute-force, dan server guard ganda.
 - **Master Barang & Kalkulator Harga Terpusat**:
   - Tabel katalog lengkap 11 kolom dengan pencarian, filter, sorting, dan pagination.
@@ -35,6 +35,15 @@ Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (
   - 4 Grafik Visualisasi Interaktif: Tren Penjualan vs Pengadaan, Doughnut Penjualan per Jenis Harga (Bebas/Resep/Grosir), Top 10 Obat Terlaris, dan Performa Kinerja Kasir.
   - Filter rentang waktu dinamis: 7 Hari Terakhir, 30 Hari Terakhir, Bulan Ini, dan Tanggal Kustom.
   - Widget tabel peringatan obat dengan stok menipis (≤ 10) atau habis (0) dengan tautan aksi restock instan.
+- **Pengaturan Toko & Preferensi POS**:
+  - Konfigurasi profil apotek: Nama toko, alamat lengkap, nomor telepon/WhatsApp, dan catatan footer struk.
+  - Pengaturan default persentase markup keuntungan (Harga Bebas, Resep, Grosir).
+  - Pengaturan default pembulatan rupiah (1, 50, 100, 500) dan format ukuran kertas cetak struk.
+- **Kelola Pengguna Sistem**:
+  - Manajemen akun staf kasir dan administrator apotek.
+  - Tambah pengguna baru dengan validasi username dan password terenkripsi bcryptjs.
+  - Edit pengguna dan opsi reset password.
+  - Toggle status aktif/nonaktif akun dengan proteksi anti-lockout administrator.
 
 ---
 
@@ -46,7 +55,7 @@ Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (
 - **Database & ORM**: SQLite (`prisma/dev.db`) & Prisma ORM
 - **Spreadsheet**: ExcelJS
 - **Visualisasi**: Chart.js & React-Chartjs-2
-- **Testing**: Vitest (Unit Tests) & Puppeteer-Core (Browser Automation)
+- **Testing**: Vitest (24 Unit Tests) & Puppeteer-Core (Browser Automation)
 
 ---
 
@@ -88,3 +97,15 @@ Aplikasi web modern berbasis **Next.js 15 (App Router)** untuk kasir penjualan (
    ```bash
    npm test
    ```
+
+---
+
+## 📑 Dokumentasi Milestone
+Setiap tahapan pengembangan didokumentasikan dalam berkas walkthrough:
+- [`WALKTHROUGH_MILESTONE_A.md`](./WALKTHROUGH_MILESTONE_A.md): Setup Fondasi, Autentikasi, Database Prisma & SQLite
+- [`WALKTHROUGH_MILESTONE_B.md`](./WALKTHROUGH_MILESTONE_B.md): Master Barang & Kalkulator Real-time
+- [`WALKTHROUGH_MILESTONE_C.md`](./WALKTHROUGH_MILESTONE_C.md): Import & Export Spreadsheet Excel (ExcelJS)
+- [`WALKTHROUGH_MILESTONE_D.md`](./WALKTHROUGH_MILESTONE_D.md): Transaksi Masuk & Keluar (POS Kasir Pintasan Keyboard)
+- [`WALKTHROUGH_MILESTONE_E.md`](./WALKTHROUGH_MILESTONE_E.md): Struk Belanja & Cetak Batch (58mm, 80mm, A4)
+- [`WALKTHROUGH_MILESTONE_F.md`](./WALKTHROUGH_MILESTONE_F.md): Dashboard Analitik & Visualisasi Grafik (Chart.js)
+- [`WALKTHROUGH_MILESTONE_G.md`](./WALKTHROUGH_MILESTONE_G.md): Pengaturan Toko, Kelola Pengguna, Polish & Finalisasi

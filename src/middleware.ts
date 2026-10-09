@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
       // Jika kasir mencoba akses endpoint API admin
       const isAdminApi =
         (pathname.startsWith("/api/pengguna")) ||
-        (pathname.startsWith("/api/pengaturan")) ||
+        (pathname.startsWith("/api/pengaturan") && request.method !== "GET") ||
         (pathname.startsWith("/api/barang/import")) ||
         (pathname.startsWith("/api/barang/export"));
 
