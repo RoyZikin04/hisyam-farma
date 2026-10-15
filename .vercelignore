@@ -1,0 +1,7 @@
+# File dan direktori yang diabaikan saat deployment ke Vercel
+scripts/
+tests/
+prisma/dev.db
+prisma/dev.db-journal
+.system_generated/
+WALKTHROUGH_*.md

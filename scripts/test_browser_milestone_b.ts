@@ -51,7 +51,7 @@ async function runBrowserTest() {
     await page.type("input[placeholder='Nama obat/barang...']", "Vitamin B Kompleks Plus");
 
     const isiAngka = async (inputEl: any, nilai: string) => {
-      await inputEl.click({ clickCount: 3 });
+      await (inputEl as any).click({ count: 3 });
       await page.keyboard.press("Backspace");
       await inputEl.type(nilai);
     };
