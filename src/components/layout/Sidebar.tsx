@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   Store,
+  X,
 } from "lucide-react";
 
 interface UserProfile {
@@ -22,7 +23,13 @@ interface UserProfile {
   role: "ADMIN" | "KASIR";
 }
 
-export default function Sidebar({ user }: { user: UserProfile }) {
+interface SidebarProps {
+  user: UserProfile;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -55,17 +62,42 @@ export default function Sidebar({ user }: { user: UserProfile }) {
   const menuItems = user.role === "ADMIN" ? adminMenu : kasirMenu;
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col flex-shrink-0 min-h-screen border-r border-slate-800 no-print select-none">
-      {/* Brand & Logo */}
-      <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-        <div className="p-2.5 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl shadow-md text-white">
-          <Store className="w-6 h-6" />
+    <>
+      {/* Backdrop Gelap di Mobile saat Sidebar Terbuka */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-slate-950/70 z-40 md:hidden backdrop-blur-sm transition-opacity"
+        />
+      )}
+
+      {/* Kontainer Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-100 flex flex-col flex-shrink-0 min-h-screen border-r border-slate-800 no-print select-none transition-transform duration-300 ease-in-out md:static md:w-64 md:translate-x-0 ${
+          isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        }`}
+      >
+        {/* Brand & Logo + Tombol Tutup di Mobile */}
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl shadow-md text-white">
+              <Store className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm tracking-tight text-white">APOTEK BERKAH</h2>
+              <p className="text-xs text-emerald-400 font-medium">Sistem POS & Stok</p>
+            </div>
+          </div>
+          {/* Tombol Tutup Silang di Layar Mobile */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg md:hidden transition-colors"
+            title="Tutup Menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div>
-          <h2 className="font-bold text-sm tracking-tight text-white">APOTEK BERKAH</h2>
-          <p className="text-xs text-emerald-400 font-medium">Sistem POS & Stok</p>
-        </div>
-      </div>
 
       {/* Profil Singkat Pengguna */}
       <div className="p-4 mx-3 my-3 bg-slate-800/60 rounded-xl border border-slate-700/50 flex items-center justify-between">
@@ -100,6 +132,9 @@ export default function Sidebar({ user }: { user: UserProfile }) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => {
+                if (onClose) onClose();
+              }}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 font-semibold"
@@ -124,5 +159,6 @@ export default function Sidebar({ user }: { user: UserProfile }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }
