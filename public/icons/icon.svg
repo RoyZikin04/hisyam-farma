@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="gradBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#064e3b" />
+    </linearGradient>
+    <linearGradient id="gradCross" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="110" fill="url(#gradBg)" />
+
+  <!-- Pharmacy Cross with Pill / Store Motif -->
+  <g filter="url(#shadow)">
+    <!-- Vertical Bar -->
+    <rect x="220" y="116" width="72" height="280" rx="36" fill="url(#gradCross)" />
+    <!-- Horizontal Bar -->
+    <rect x="116" y="220" width="280" height="72" rx="36" fill="url(#gradCross)" />
+  </g>
+
+  <!-- Center Heart / Medical Pulse Accent -->
+  <circle cx="256" cy="256" r="38" fill="#10b981" />
+  <path d="M236 256 L248 244 L256 268 L264 250 L276 256" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
