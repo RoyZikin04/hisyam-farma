@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "kunci-rahasia-sistem-penjualan-dan-stok-barang-2026"
+  process.env.SESSION_SECRET ||
+    process.env.JWT_SECRET ||
+    "kunci-rahasia-sistem-penjualan-dan-stok-barang-2026"
 );
 
 export const AUTH_COOKIE_NAME = "sesi_pengguna";

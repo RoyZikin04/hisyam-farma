@@ -3,7 +3,9 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "kunci-rahasia-sistem-penjualan-dan-stok-barang-2026"
+  process.env.SESSION_SECRET ||
+    process.env.JWT_SECRET ||
+    "kunci-rahasia-sistem-penjualan-dan-stok-barang-2026"
 );
 
 const AUTH_COOKIE_NAME = "sesi_pengguna";
