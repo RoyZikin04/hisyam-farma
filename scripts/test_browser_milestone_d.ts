@@ -58,7 +58,7 @@ async function runBrowserMilestoneDTest() {
     // Isi Qty Masuk: 30
     const inputsMasuk = await page.$$("form input[type='number']");
     if (inputsMasuk.length >= 2) {
-      await inputsMasuk[0].click({ clickCount: 3 });
+      await (inputsMasuk[0] as any).click({ count: 3 });
       await page.keyboard.press("Backspace");
       await inputsMasuk[0].type("30");
     }

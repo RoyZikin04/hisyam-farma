@@ -5,10 +5,12 @@ import { CheckCircle2, AlertCircle, X } from "lucide-react";
 interface ToastProps {
   tipe: "sukses" | "error";
   pesan: string;
-  onTutup: () => void;
+  onTutup?: () => void;
+  onClose?: () => void;
 }
 
-export default function Toast({ tipe, pesan, onTutup }: ToastProps) {
+export default function Toast({ tipe, pesan, onTutup, onClose }: ToastProps) {
+  const handleTutup = onTutup || onClose || (() => {});
   return (
     <div
       className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm max-w-md transition-all animate-in fade-in slide-in-from-top-4 ${
@@ -25,7 +27,7 @@ export default function Toast({ tipe, pesan, onTutup }: ToastProps) {
       <span className="flex-1 font-medium">{pesan}</span>
       <button
         type="button"
-        onClick={onTutup}
+        onClick={handleTutup}
         className="p-1 hover:bg-black/5 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
       >
         <X className="w-4 h-4" />

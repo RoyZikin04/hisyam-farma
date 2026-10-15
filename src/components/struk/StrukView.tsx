@@ -32,6 +32,11 @@ export interface PengaturanTokoData {
   alamat: string;
   telepon: string;
   footer_struk: string;
+  ukuran_kertas?: string;
+  default_markup_bebas?: number;
+  default_markup_resep?: number;
+  default_markup_grosir?: number;
+  pembulatan?: number;
 }
 
 interface StrukViewProps {
