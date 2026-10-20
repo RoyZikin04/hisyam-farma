@@ -15,6 +15,10 @@ import {
   Keyboard,
   Printer,
   Sparkles,
+  Users,
+  UserCheck,
+  UserPlus,
+  User,
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import { formatRupiah } from "@/lib/format";
@@ -31,6 +35,14 @@ interface MasterBarang {
   harga_bebas: number;
   harga_resep: number;
   harga_grosir: number;
+}
+
+export interface PelangganOption {
+  id: string;
+  kode_pelanggan: string;
+  nama: string;
+  telepon: string | null;
+  alamat: string | null;
 }
 
 interface CartItem {
@@ -51,6 +63,7 @@ interface TransaksiSelesaiData {
   grand_total: number;
   nominal_bayar: number;
   kembalian: number;
+  nama_pelanggan?: string;
   tanggal: string;
 }
 
@@ -58,6 +71,17 @@ export default function KasirPOSPage() {
   const [daftarBarang, setDaftarBarang] = useState<MasterBarang[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Pelanggan / Member State
+  const [pelangganList, setPelangganList] = useState<PelangganOption[]>([]);
+  const [selectedPelanggan, setSelectedPelanggan] = useState<PelangganOption | null>(null);
+  const [modalPilihPelangganOpen, setModalPilihPelangganOpen] = useState(false);
+  const [searchPelanggan, setSearchPelanggan] = useState("");
+  const [modalTambahPelangganOpen, setModalTambahPelangganOpen] = useState(false);
+  const [namaPelangganBaru, setNamaPelangganBaru] = useState("");
+  const [teleponPelangganBaru, setTeleponPelangganBaru] = useState("");
+  const [alamatPelangganBaru, setAlamatPelangganBaru] = useState("");
+  const [savingPelangganBaru, setSavingPelangganBaru] = useState(false);
 
   // Modal Bayar (Checkout)
   const [modalBayarOpen, setModalBayarOpen] = useState(false);
@@ -87,8 +111,56 @@ export default function KasirPOSPage() {
       .catch((err) => console.error("Gagal memuat barang:", err));
   }, []);
 
+  // Muat daftar pelanggan aktif
+  const loadPelanggan = useCallback(() => {
+    fetch("/api/pelanggan?status=aktif&limit=100")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.items) setPelangganList(data.items);
+      })
+      .catch((err) => console.error("Gagal memuat pelanggan:", err));
+  }, []);
+
+  // Simpan Pelanggan Baru Secara Cepat dari POS
+  const handleSimpanPelangganCepat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!namaPelangganBaru.trim()) {
+      setToast({ tipe: "error", pesan: "Nama pelanggan wajib diisi!" });
+      return;
+    }
+    setSavingPelangganBaru(true);
+    try {
+      const res = await fetch("/api/pelanggan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: namaPelangganBaru.trim(),
+          telepon: teleponPelangganBaru.trim() || null,
+          alamat: alamatPelangganBaru.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setToast({ tipe: "error", pesan: json.error || "Gagal menambah pelanggan" });
+        return;
+      }
+      setToast({ tipe: "sukses", pesan: `Pelanggan "${json.data.nama}" berhasil didaftarkan!` });
+      setSelectedPelanggan(json.data);
+      setModalTambahPelangganOpen(false);
+      setNamaPelangganBaru("");
+      setTeleponPelangganBaru("");
+      setAlamatPelangganBaru("");
+      loadPelanggan();
+    } catch {
+      setToast({ tipe: "error", pesan: "Gangguan koneksi saat mendaftarkan pelanggan" });
+    } finally {
+      setSavingPelangganBaru(false);
+    }
+  };
+
   useEffect(() => {
     loadBarang();
+    loadPelanggan();
     // Muat data pengaturan toko untuk struk
     fetch("/api/pengaturan")
       .then((res) => (res.ok ? res.json() : null))
@@ -99,7 +171,7 @@ export default function KasirPOSPage() {
 
     // Autofocus ke input pencarian barang saat halaman pertama kali dimuat
     searchInputRef.current?.focus();
-  }, [loadBarang]);
+  }, [loadBarang, loadPelanggan]);
 
   // Handler Keyboard Shortcuts (F2: Cari, F9: Bayar, Escape: Tutup, P: Cetak, Enter: Baru)
   useEffect(() => {
@@ -264,6 +336,8 @@ export default function KasirPOSPage() {
       const payload = {
         nominal_bayar: nominalBayar,
         keterangan: keterangan || undefined,
+        pelanggan_id: selectedPelanggan?.id || null,
+        nama_pelanggan: selectedPelanggan?.nama || "Umum",
         items: cart.map((c) => ({
           penjualan_id: c.penjualan_id,
           jenis_harga: c.jenis_harga,
@@ -289,6 +363,7 @@ export default function KasirPOSPage() {
       setModalBayarOpen(false);
       setCart([]);
       setKeterangan("");
+      setSelectedPelanggan(null); // Reset pelanggan ke Umum untuk transaksi berikutnya
       loadBarang(); // Muat ulang stok
 
       setTransaksiSelesai(json.data);
@@ -556,8 +631,81 @@ export default function KasirPOSPage() {
           </div>
         </div>
 
-        {/* Kolom Kanan: Ringkasan Pembayaran & Tombol Bayar Besar */}
+        {/* Kolom Kanan: Pelanggan, Ringkasan Pembayaran & Tombol Bayar Besar */}
         <div className="lg:col-span-4 space-y-4">
+          {/* Box Pemilihan Pelanggan / Member */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span>Data Pelanggan</span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => setModalTambahPelangganOpen(true)}
+                className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200/60"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Baru</span>
+              </button>
+            </div>
+
+            {selectedPelanggan ? (
+              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                      {selectedPelanggan.kode_pelanggan}
+                    </span>
+                    <span className="font-bold text-slate-900 text-xs">{selectedPelanggan.nama}</span>
+                  </div>
+                  {selectedPelanggan.telepon && (
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Telp: {selectedPelanggan.telepon}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setModalPilihPelangganOpen(true)}
+                    className="p-1.5 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[11px] font-semibold cursor-pointer"
+                    title="Ganti Pelanggan"
+                  >
+                    Ganti
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPelanggan(null)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                    title="Hapus / Jadikan Umum"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-800 text-xs block">Penjualan Umum</span>
+                    <span className="text-[10px] text-slate-400">Non-Member / Reguler</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalPilihPelangganOpen(true)}
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:border-emerald-500 hover:text-emerald-700 text-slate-700 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  Pilih Member
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
             <h2 className="font-bold text-slate-800 text-base flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-emerald-600" />
@@ -627,6 +775,16 @@ export default function KasirPOSPage() {
                 <p className="text-3xl font-extrabold text-emerald-700 font-mono mt-1">
                   {formatRupiah(grandTotal)}
                 </p>
+              </div>
+
+              {/* Info Pelanggan di Modal Bayar */}
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium">Pelanggan Transaksi:</span>
+                <span className="font-bold text-emerald-800">
+                  {selectedPelanggan
+                    ? `${selectedPelanggan.nama} (${selectedPelanggan.kode_pelanggan})`
+                    : "Penjualan Umum (Non-Member)"}
+                </span>
               </div>
 
               {/* Tombol Cepat Nominal Uang */}
@@ -798,6 +956,209 @@ export default function KasirPOSPage() {
           onClose={() => setModalCetakOpen(false)}
         />
       )}
+
+      {/* Modal Pilih Pelanggan Terdaftar */}
+      {modalPilihPelangganOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 max-h-[85vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-200" />
+                <h3 className="text-base font-bold">Pilih Pelanggan / Member</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalPilihPelangganOpen(false)}
+                className="p-1 rounded-lg text-emerald-100 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-slate-100 flex-shrink-0 space-y-2">
+              <div className="relative">
+                <Search className="w-4 h-4 text-emerald-600 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchPelanggan}
+                  onChange={(e) => setSearchPelanggan(e.target.value)}
+                  placeholder="Cari nama, kode, atau telepon member..."
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+
+              {/* Opsi Penjualan Umum */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPelanggan(null);
+                  setModalPilihPelangganOpen(false);
+                }}
+                className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-colors cursor-pointer ${
+                  !selectedPelanggan
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-900 font-bold"
+                    : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-2 text-xs">
+                  <User className="w-4 h-4 text-slate-400" />
+                  <span>Penjualan Umum (Non-Member)</span>
+                </div>
+                {!selectedPelanggan && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                )}
+              </button>
+            </div>
+
+            {/* List Pelanggan */}
+            <div className="p-4 overflow-y-auto divide-y divide-slate-100 flex-1 space-y-1">
+              {pelangganList
+                .filter(
+                  (p) =>
+                    !searchPelanggan.trim() ||
+                    p.nama.toLowerCase().includes(searchPelanggan.toLowerCase()) ||
+                    p.kode_pelanggan.toLowerCase().includes(searchPelanggan.toLowerCase()) ||
+                    (p.telepon && p.telepon.includes(searchPelanggan))
+                )
+                .map((pel) => {
+                  const isCur = selectedPelanggan?.id === pel.id;
+                  return (
+                    <div
+                      key={pel.id}
+                      onClick={() => {
+                        setSelectedPelanggan(pel);
+                        setModalPilihPelangganOpen(false);
+                      }}
+                      className={`p-3 rounded-xl cursor-pointer transition-colors flex items-center justify-between ${
+                        isCur
+                          ? "bg-emerald-50 border border-emerald-200"
+                          : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-mono font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[10px]">
+                            {pel.kode_pelanggan}
+                          </span>
+                          <span className="font-bold text-slate-900">{pel.nama}</span>
+                        </div>
+                        {pel.telepon && (
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Telp: {pel.telepon}
+                          </div>
+                        )}
+                      </div>
+                      {isCur && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalPilihPelangganOpen(false);
+                  setModalTambahPelangganOpen(true);
+                }}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Daftar Member Baru</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalPilihPelangganOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Pelanggan Kilat */}
+      {modalTambahPelangganOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+            <div className="px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-emerald-200" />
+                <h3 className="text-sm font-bold">Daftar Pelanggan Baru</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalTambahPelangganOpen(false)}
+                className="p-1 rounded-lg text-emerald-100 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSimpanPelangganCepat} className="p-5 space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nama Pelanggan <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={namaPelangganBaru}
+                  onChange={(e) => setNamaPelangganBaru(e.target.value)}
+                  placeholder="Contoh: Ibu Rina / Bpk. Rudi"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nomor HP / WhatsApp
+                </label>
+                <input
+                  type="text"
+                  value={teleponPelangganBaru}
+                  onChange={(e) => setTeleponPelangganBaru(e.target.value)}
+                  placeholder="Contoh: 0812-3456-7890"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Alamat Singkat
+                </label>
+                <input
+                  type="text"
+                  value={alamatPelangganBaru}
+                  onChange={(e) => setAlamatPelangganBaru(e.target.value)}
+                  placeholder="Contoh: Jl. Sehat No. 3"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setModalTambahPelangganOpen(false)}
+                  className="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPelangganBaru}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  {savingPelangganBaru ? "Menyimpan..." : "Simpan & Pilih"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

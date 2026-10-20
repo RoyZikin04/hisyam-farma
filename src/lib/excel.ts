@@ -326,24 +326,33 @@ export async function exportTransaksiExcel(
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Apotek Berkah POS";
-  const worksheet = workbook.addWorksheet("Laporan Transaksi", {
+
+  // ==========================================
+  // SHEET 1: RINCIAN TRANSAKSI ITEM
+  // ==========================================
+  const worksheet = workbook.addWorksheet("Rincian Transaksi", {
     views: [{ showGridLines: true }],
   });
 
   worksheet.columns = [
-    { header: "No. Transaksi", key: "no_transaksi", width: 20 },
+    { header: "No. Transaksi", key: "no_transaksi", width: 22 },
     { header: "Tanggal", key: "tanggal", width: 18 },
-    { header: "Tipe", key: "tipe", width: 12 },
-    { header: "Kasir / Petugas", key: "user", width: 22 },
+    { header: "Tipe", key: "tipe", width: 14 },
+    { header: "Pelanggan", key: "pelanggan", width: 20 },
+    { header: "Kasir / Petugas", key: "user", width: 20 },
     { header: "Kode Barang", key: "kode_barang", width: 14 },
     { header: "Nama Barang", key: "nama_barang", width: 28 },
-    { header: "Jenis Harga", key: "jenis_harga", width: 14 },
-    { header: "Qty", key: "qty", width: 10 },
+    { header: "Jenis Harga", key: "jenis_harga", width: 13 },
+    { header: "Qty", key: "qty", width: 8 },
     { header: "Harga Satuan (Rp)", key: "harga_satuan", width: 16 },
     { header: "Subtotal (Rp)", key: "subtotal", width: 16 },
+    { header: "HPP Satuan (Rp)", key: "hpp_satuan", width: 16 },
+    { header: "Total HPP (Rp)", key: "total_hpp", width: 16 },
+    { header: "Laba Kotor (Rp)", key: "laba_kotor", width: 16 },
+    { header: "Margin (%)", key: "margin_persen", width: 12 },
     { header: "Grand Total Struk", key: "grand_total", width: 18 },
-    { header: "Nominal Bayar", key: "nominal_bayar", width: 16 },
-    { header: "Kembalian", key: "kembalian", width: 16 },
+    { header: "Nominal Bayar", key: "nominal_bayar", width: 15 },
+    { header: "Kembalian", key: "kembalian", width: 15 },
     { header: "Keterangan", key: "keterangan", width: 24 },
   ];
 
@@ -360,9 +369,25 @@ export async function exportTransaksiExcel(
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
 
+  // Map untuk agregasi Sheet 2: Margin Per Tanggal
+  const mapMarginHarian: {
+    [tgl: string]: {
+      tanggal: string;
+      jumlahTrx: number;
+      omzet: number;
+      hpp: number;
+      laba: number;
+      qtyKeluar: number;
+      restockRp: number;
+      qtyMasuk: number;
+    };
+  } = {};
+
   // Isi data per item transaksi
   transaksiList.forEach((t) => {
-    const tanggalFormatted = new Date(t.tanggal).toLocaleDateString("id-ID", {
+    const tglObj = new Date(t.tanggal);
+    const tglIso = tglObj.toISOString().split("T")[0];
+    const tanggalFormatted = tglObj.toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -370,12 +395,50 @@ export async function exportTransaksiExcel(
       minute: "2-digit",
     });
 
+    const namaPelanggan = t.nama_pelanggan || t.pelanggan?.nama || "Umum";
+
+    // Inisialisasi agregasi per tanggal jika belum ada
+    if (!mapMarginHarian[tglIso]) {
+      mapMarginHarian[tglIso] = {
+        tanggal: tglIso,
+        jumlahTrx: 0,
+        omzet: 0,
+        hpp: 0,
+        laba: 0,
+        qtyKeluar: 0,
+        restockRp: 0,
+        qtyMasuk: 0,
+      };
+    }
+
+    if (t.tipe === "KELUAR") {
+      mapMarginHarian[tglIso].jumlahTrx += 1;
+      mapMarginHarian[tglIso].omzet += t.grand_total;
+    } else if (t.tipe === "MASUK") {
+      mapMarginHarian[tglIso].restockRp += t.grand_total;
+    }
+
     if (t.items && t.items.length > 0) {
       t.items.forEach((item: any) => {
+        const isKeluar = t.tipe === "KELUAR";
+        const hppSatuan = item.penjualan?.harga_pokok ?? (isKeluar ? 0 : item.harga_satuan);
+        const totalHpp = isKeluar ? hppSatuan * item.qty : 0;
+        const labaKotor = isKeluar ? item.subtotal - totalHpp : 0;
+        const marginPersen = isKeluar && item.subtotal > 0 ? (labaKotor / item.subtotal) * 100 : 0;
+
+        if (isKeluar) {
+          mapMarginHarian[tglIso].hpp += totalHpp;
+          mapMarginHarian[tglIso].laba += labaKotor;
+          mapMarginHarian[tglIso].qtyKeluar += item.qty;
+        } else {
+          mapMarginHarian[tglIso].qtyMasuk += item.qty;
+        }
+
         worksheet.addRow({
           no_transaksi: t.no_transaksi,
           tanggal: tanggalFormatted,
           tipe: t.tipe,
+          pelanggan: namaPelanggan,
           user: t.user?.nama || "-",
           kode_barang: item.kode_barang,
           nama_barang: item.nama_barang,
@@ -383,6 +446,10 @@ export async function exportTransaksiExcel(
           qty: item.qty,
           harga_satuan: item.harga_satuan,
           subtotal: item.subtotal,
+          hpp_satuan: isKeluar ? hppSatuan : "-",
+          total_hpp: isKeluar ? totalHpp : "-",
+          laba_kotor: isKeluar ? labaKotor : "-",
+          margin_persen: isKeluar ? `${marginPersen.toFixed(1)}%` : "-",
           grand_total: t.grand_total,
           nominal_bayar: t.nominal_bayar ?? "-",
           kembalian: t.kembalian ?? "-",
@@ -394,6 +461,7 @@ export async function exportTransaksiExcel(
         no_transaksi: t.no_transaksi,
         tanggal: tanggalFormatted,
         tipe: t.tipe,
+        pelanggan: namaPelanggan,
         user: t.user?.nama || "-",
         kode_barang: "-",
         nama_barang: "-",
@@ -401,6 +469,10 @@ export async function exportTransaksiExcel(
         qty: 0,
         harga_satuan: 0,
         subtotal: 0,
+        hpp_satuan: "-",
+        total_hpp: "-",
+        laba_kotor: "-",
+        margin_persen: "-",
         grand_total: t.grand_total,
         nominal_bayar: t.nominal_bayar ?? "-",
         kembalian: t.kembalian ?? "-",
@@ -422,6 +494,15 @@ export async function exportTransaksiExcel(
       row.getCell("harga_satuan").numFmt = "#,##0";
       row.getCell("subtotal").numFmt = "#,##0";
       row.getCell("grand_total").numFmt = "#,##0";
+      if (typeof row.getCell("hpp_satuan").value === "number") {
+        row.getCell("hpp_satuan").numFmt = "#,##0";
+      }
+      if (typeof row.getCell("total_hpp").value === "number") {
+        row.getCell("total_hpp").numFmt = "#,##0";
+      }
+      if (typeof row.getCell("laba_kotor").value === "number") {
+        row.getCell("laba_kotor").numFmt = "#,##0";
+      }
       if (typeof row.getCell("nominal_bayar").value === "number") {
         row.getCell("nominal_bayar").numFmt = "#,##0";
       }
@@ -431,6 +512,112 @@ export async function exportTransaksiExcel(
     }
   });
 
+  // ==========================================
+  // SHEET 2: RINGKASAN MARGIN PER TANGGAL
+  // ==========================================
+  const sheetMargin = workbook.addWorksheet("Margin Per Tanggal", {
+    views: [{ showGridLines: true }],
+  });
+
+  sheetMargin.columns = [
+    { header: "Tanggal", key: "tanggal", width: 16 },
+    { header: "Jumlah Transaksi", key: "jumlah_trx", width: 18 },
+    { header: "Omzet Penjualan (Rp)", key: "omzet", width: 22 },
+    { header: "Modal Pokok / HPP (Rp)", key: "hpp", width: 22 },
+    { header: "Laba Kotor / Profit (Rp)", key: "laba", width: 24 },
+    { header: "Margin (%)", key: "margin", width: 14 },
+    { header: "Barang Keluar (Pcs)", key: "qty_keluar", width: 18 },
+    { header: "Restock Masuk (Rp)", key: "restock_rp", width: 20 },
+    { header: "Barang Masuk (Pcs)", key: "qty_masuk", width: 18 },
+  ];
+
+  const headerMarginRow = sheetMargin.getRow(1);
+  headerMarginRow.height = 26;
+  headerMarginRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF065F46" }, // Emerald 800
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  });
+
+  const listHarian = Object.values(mapMarginHarian).sort((a, b) =>
+    b.tanggal.localeCompare(a.tanggal)
+  );
+
+  let totalAllOmzet = 0;
+  let totalAllHpp = 0;
+  let totalAllLaba = 0;
+  let totalAllTrx = 0;
+  let totalAllKeluar = 0;
+  let totalAllRestock = 0;
+  let totalAllMasuk = 0;
+
+  listHarian.forEach((h) => {
+    const marginPct = h.omzet > 0 ? (h.laba / h.omzet) * 100 : 0;
+    totalAllOmzet += h.omzet;
+    totalAllHpp += h.hpp;
+    totalAllLaba += h.laba;
+    totalAllTrx += h.jumlahTrx;
+    totalAllKeluar += h.qtyKeluar;
+    totalAllRestock += h.restockRp;
+    totalAllMasuk += h.qtyMasuk;
+
+    sheetMargin.addRow({
+      tanggal: h.tanggal,
+      jumlah_trx: h.jumlahTrx,
+      omzet: h.omzet,
+      hpp: h.hpp,
+      laba: h.laba,
+      margin: `${marginPct.toFixed(1)}%`,
+      qty_keluar: h.qtyKeluar,
+      restock_rp: h.restockRp,
+      qty_masuk: h.qtyMasuk,
+    });
+  });
+
+  // Footer baris TOTAL di Sheet Margin
+  const totalMarginPct = totalAllOmzet > 0 ? (totalAllLaba / totalAllOmzet) * 100 : 0;
+  const footerRow = sheetMargin.addRow({
+    tanggal: "TOTAL KESELURUHAN",
+    jumlah_trx: totalAllTrx,
+    omzet: totalAllOmzet,
+    hpp: totalAllHpp,
+    laba: totalAllLaba,
+    margin: `${totalMarginPct.toFixed(1)}%`,
+    qty_keluar: totalAllKeluar,
+    restock_rp: totalAllRestock,
+    qty_masuk: totalAllMasuk,
+  });
+
+  footerRow.height = 24;
+  footerRow.font = { bold: true };
+  footerRow.eachCell((cell) => {
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF1F5F9" }, // Slate 100
+    };
+  });
+
+  sheetMargin.eachRow((row, rowNumber) => {
+    if (rowNumber > 1) {
+      row.alignment = { vertical: "middle" };
+      row.getCell("tanggal").alignment = { horizontal: "center" };
+      row.getCell("jumlah_trx").alignment = { horizontal: "center" };
+      row.getCell("omzet").numFmt = "#,##0";
+      row.getCell("hpp").numFmt = "#,##0";
+      row.getCell("laba").numFmt = "#,##0";
+      row.getCell("margin").alignment = { horizontal: "center" };
+      row.getCell("qty_keluar").alignment = { horizontal: "right" };
+      row.getCell("restock_rp").numFmt = "#,##0";
+      row.getCell("qty_masuk").alignment = { horizontal: "right" };
+    }
+  });
+
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }
+

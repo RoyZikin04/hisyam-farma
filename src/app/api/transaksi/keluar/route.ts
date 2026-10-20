@@ -6,6 +6,8 @@ import { z } from "zod";
 const transaksiKeluarSchema = z.object({
   nominal_bayar: z.number().int().min(0, "Nominal bayar wajib diisi"),
   keterangan: z.string().optional(),
+  pelanggan_id: z.string().optional().nullable(),
+  nama_pelanggan: z.string().optional().nullable(),
   items: z
     .array(
       z.object({
@@ -35,6 +37,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       nominal_bayar: parsed.data.nominal_bayar,
       keterangan: parsed.data.keterangan,
+      pelanggan_id: parsed.data.pelanggan_id,
+      nama_pelanggan: parsed.data.nama_pelanggan,
       items: parsed.data.items,
     });
 

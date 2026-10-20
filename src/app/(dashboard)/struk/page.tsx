@@ -376,6 +376,11 @@ export default function DaftarStrukPage() {
                         <span className="text-[10px] text-slate-400 block font-normal">
                           @{trx.user?.username || "-"}
                         </span>
+                        {isKeluar && (
+                          <span className="text-[10.5px] text-emerald-700 font-medium block mt-0.5">
+                            Pelanggan: <strong>{trx.nama_pelanggan || "Umum"}</strong>
+                          </span>
+                        )}
                       </td>
 
                       <td className="p-4 text-slate-600 max-w-xs">

@@ -19,6 +19,14 @@ export interface TransaksiData {
   grand_total: number;
   nominal_bayar?: number | null;
   kembalian?: number | null;
+  pelanggan_id?: string | null;
+  nama_pelanggan?: string | null;
+  pelanggan?: {
+    id?: string;
+    kode_pelanggan: string;
+    nama: string;
+    telepon?: string | null;
+  } | null;
   keterangan?: string | null;
   user?: {
     nama: string;
@@ -98,6 +106,15 @@ export default function StrukView({
             <strong className="text-slate-800 font-medium">
               {transaksi.user?.nama || "Kasir"} (@{transaksi.user?.username || "-"})
             </strong>
+            {isKeluar && (
+              <div className="mt-1">
+                <span className="text-slate-500">Pelanggan:</span>{" "}
+                <strong className="text-emerald-800 font-semibold">
+                  {transaksi.nama_pelanggan || "Umum"}
+                  {transaksi.pelanggan?.kode_pelanggan ? ` (${transaksi.pelanggan.kode_pelanggan})` : ""}
+                </strong>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <span className="text-slate-500">Status Pembayaran:</span>{" "}
@@ -251,6 +268,15 @@ export default function StrukView({
             <span>Kasir:</span>
             <span>{transaksi.user?.nama || "Kasir"}</span>
           </div>
+          {isKeluar && (
+            <div className="flex justify-between">
+              <span>Pelanggan:</span>
+              <span className="font-semibold text-right">
+                {transaksi.nama_pelanggan || "Umum"}
+                {transaksi.pelanggan?.kode_pelanggan ? ` (${transaksi.pelanggan.kode_pelanggan})` : ""}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>Tipe:</span>
             <span>{isKeluar ? "PENJUALAN" : "RESTOCK"}</span>
@@ -349,6 +375,15 @@ export default function StrukView({
           <span>Kasir / Petugas</span>
           <span>{transaksi.user?.nama || "Kasir"}</span>
         </div>
+        {isKeluar && (
+          <div className="flex justify-between">
+            <span>Pelanggan</span>
+            <span className="font-semibold text-right">
+              {transaksi.nama_pelanggan || "Umum"}
+              {transaksi.pelanggan?.kode_pelanggan ? ` (${transaksi.pelanggan.kode_pelanggan})` : ""}
+            </span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span>Jenis Transaksi</span>
           <span className="font-semibold">

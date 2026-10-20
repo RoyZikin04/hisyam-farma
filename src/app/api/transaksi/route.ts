@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     if (q) {
       where.OR = [
         { no_transaksi: { contains: q } },
+        { nama_pelanggan: { contains: q } },
         { items: { some: { nama_barang: { contains: q } } } },
       ];
     }
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           user: { select: { id: true, nama: true, username: true } },
+          pelanggan: true,
           items: true,
         },
         orderBy: { tanggal: "desc" },

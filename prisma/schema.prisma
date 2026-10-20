@@ -53,6 +53,9 @@ model Transaksi {
   grand_total   Int             @default(0)
   nominal_bayar Int?            // nullable untuk MASUK
   kembalian     Int?            // nullable untuk MASUK
+  pelanggan_id  String?
+  pelanggan     Pelanggan?      @relation(fields: [pelanggan_id], references: [id])
+  nama_pelanggan String?        @default("Umum")
   keterangan    String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -92,4 +95,19 @@ model Pengaturan {
   updatedAt             DateTime @updatedAt
 
   @@map("pengaturan")
+}
+
+model Pelanggan {
+  id             String      @id @default(cuid())
+  kode_pelanggan String      @unique
+  nama           String
+  telepon        String?
+  alamat         String?
+  catatan        String?
+  aktif          Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  transaksi      Transaksi[]
+
+  @@map("pelanggan")
 }

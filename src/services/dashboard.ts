@@ -43,6 +43,19 @@ export interface BarangMenipisItem {
   harga_bebas: number;
 }
 
+export interface MarginHarianItem {
+  tanggal: string; // YYYY-MM-DD
+  label: string; // misal "15 Okt 2026"
+  omzet: number; // Grand total penjualan KELUAR
+  hpp: number; // Total modal HPP barang KELUAR
+  laba_kotor: number; // omzet - hpp
+  margin_persen: number; // persentase laba kotor terhadap omzet
+  jumlah_transaksi: number; // total struk penjualan
+  barang_keluar_qty: number; // total pcs barang terjual
+  pengadaan_rp: number; // nilai transaksi MASUK
+  barang_masuk_qty: number; // total pcs barang masuk restock
+}
+
 export interface DashboardStatsResult {
   omzetHariIni: number;
   omzetBulanIni: number;
@@ -54,6 +67,16 @@ export interface DashboardStatsResult {
   topBarang: TopBarangStat[];
   performaKasir: KasirStat[];
   barangStokMenipis: BarangMenipisItem[];
+  rincianMarginHarian: MarginHarianItem[];
+  ringkasanMarginPeriode: {
+    totalOmzet: number;
+    totalHpp: number;
+    totalLabaKotor: number;
+    rataRataMarginPersen: number;
+    totalBarangKeluarQty: number;
+    totalBarangMasukQty: number;
+    totalPengadaanRp: number;
+  };
   rentangInfo: {
     start: string;
     end: string;
@@ -158,14 +181,20 @@ export async function getDashboardStats(filter: DashboardFilter = {}): Promise<D
       },
     }),
 
-    // Seluruh transaksi dalam rentang filter untuk visualisasi grafik
+    // Seluruh transaksi dalam rentang filter untuk visualisasi grafik & rincian margin harian
     prisma.transaksi.findMany({
       where: {
         tanggal: { gte: filterStart, lte: filterEnd },
       },
       include: {
         user: { select: { id: true, nama: true, username: true } },
-        items: true,
+        items: {
+          include: {
+            penjualan: {
+              select: { harga_pokok: true },
+            },
+          },
+        },
       },
       orderBy: { tanggal: "asc" },
     }),
@@ -188,15 +217,34 @@ export async function getDashboardStats(filter: DashboardFilter = {}): Promise<D
     }
   }
 
-  // 2. Olah Data Tren Harian (Masuk vs Keluar)
+  // 2. Olah Data Tren Harian (Masuk vs Keluar) & Rincian Margin Per Tanggal
   const mapTren: { [tgl: string]: { penjualan: number; pengadaan: number; label: string } } = {};
+  const mapMarginHarian: { [tgl: string]: MarginHarianItem } = {};
 
   // Inisialisasi setiap hari dalam rentang filter agar tidak ada tanggal yang bolong
   const iterDate = new Date(filterStart);
   while (iterDate <= filterEnd) {
     const key = iterDate.toISOString().split("T")[0];
-    const label = iterDate.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
-    mapTren[key] = { penjualan: 0, pengadaan: 0, label };
+    const labelTren = iterDate.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+    const labelLengkap = iterDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    mapTren[key] = { penjualan: 0, pengadaan: 0, label: labelTren };
+    mapMarginHarian[key] = {
+      tanggal: key,
+      label: labelLengkap,
+      omzet: 0,
+      hpp: 0,
+      laba_kotor: 0,
+      margin_persen: 0,
+      jumlah_transaksi: 0,
+      barang_keluar_qty: 0,
+      pengadaan_rp: 0,
+      barang_masuk_qty: 0,
+    };
     iterDate.setDate(iterDate.getDate() + 1);
   }
 
@@ -209,7 +257,67 @@ export async function getDashboardStats(filter: DashboardFilter = {}): Promise<D
         mapTren[key].pengadaan += trx.grand_total;
       }
     }
+
+    if (mapMarginHarian[key]) {
+      if (trx.tipe === "KELUAR") {
+        mapMarginHarian[key].omzet += trx.grand_total;
+        mapMarginHarian[key].jumlah_transaksi += 1;
+        for (const item of trx.items) {
+          const hppItem = item.penjualan?.harga_pokok ?? 0;
+          mapMarginHarian[key].hpp += hppItem * item.qty;
+          mapMarginHarian[key].barang_keluar_qty += item.qty;
+        }
+      } else if (trx.tipe === "MASUK") {
+        mapMarginHarian[key].pengadaan_rp += trx.grand_total;
+        for (const item of trx.items) {
+          mapMarginHarian[key].barang_masuk_qty += item.qty;
+        }
+      }
+    }
   }
+
+  // Hitung laba kotor & margin persen per tanggal
+  let totalPeriodeOmzet = 0;
+  let totalPeriodeHpp = 0;
+  let totalPeriodeBarangKeluar = 0;
+  let totalPeriodeBarangMasuk = 0;
+  let totalPeriodePengadaan = 0;
+
+  for (const key of Object.keys(mapMarginHarian)) {
+    const row = mapMarginHarian[key];
+    row.laba_kotor = row.omzet - row.hpp;
+    row.margin_persen =
+      row.omzet > 0
+        ? Math.round(((row.laba_kotor / row.omzet) * 100) * 10) / 10
+        : 0;
+
+    totalPeriodeOmzet += row.omzet;
+    totalPeriodeHpp += row.hpp;
+    totalPeriodeBarangKeluar += row.barang_keluar_qty;
+    totalPeriodeBarangMasuk += row.barang_masuk_qty;
+    totalPeriodePengadaan += row.pengadaan_rp;
+  }
+
+  const totalPeriodeLabaKotor = totalPeriodeOmzet - totalPeriodeHpp;
+  const rataRataMarginPersen =
+    totalPeriodeOmzet > 0
+      ? Math.round(((totalPeriodeLabaKotor / totalPeriodeOmzet) * 100) * 10) / 10
+      : 0;
+
+  // Urutkan rincian margin harian dari tanggal terbaru ke terlama untuk tampilan tabel
+  const rincianMarginHarian: MarginHarianItem[] = Object.values(mapMarginHarian).sort(
+    (a, b) => b.tanggal.localeCompare(a.tanggal)
+  );
+
+  const ringkasanMarginPeriode = {
+    totalOmzet: totalPeriodeOmzet,
+    totalHpp: totalPeriodeHpp,
+    totalLabaKotor: totalPeriodeLabaKotor,
+    rataRataMarginPersen,
+    totalBarangKeluarQty: totalPeriodeBarangKeluar,
+    totalBarangMasukQty: totalPeriodeBarangMasuk,
+    totalPengadaanRp: totalPeriodePengadaan,
+  };
 
   const trenTransaksi: TrenItem[] = Object.keys(mapTren)
     .sort()
@@ -296,6 +404,8 @@ export async function getDashboardStats(filter: DashboardFilter = {}): Promise<D
     topBarang,
     performaKasir,
     barangStokMenipis: barangStokMenipisList,
+    rincianMarginHarian,
+    ringkasanMarginPeriode,
     rentangInfo: {
       start: filterStart.toISOString().split("T")[0],
       end: filterEnd.toISOString().split("T")[0],

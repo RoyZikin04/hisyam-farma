@@ -14,6 +14,7 @@ import {
   LogOut,
   Store,
   X,
+  UserCheck,
 } from "lucide-react";
 
 interface UserProfile {
@@ -46,6 +47,7 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
   const adminMenu = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Master Barang", href: "/barang", icon: Package },
+    { name: "Data Pelanggan", href: "/pelanggan", icon: UserCheck },
     { name: "Barang Masuk", href: "/transaksi/masuk", icon: ArrowDownToLine },
     { name: "Kasir (POS)", href: "/transaksi/kasir", icon: ShoppingCart },
     { name: "Daftar Struk", href: "/struk", icon: Receipt },
@@ -56,6 +58,7 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
 
   const kasirMenu = [
     { name: "Kasir (POS)", href: "/transaksi/kasir", icon: ShoppingCart },
+    { name: "Data Pelanggan", href: "/pelanggan", icon: UserCheck },
     { name: "Daftar Struk Saya", href: "/struk", icon: Receipt },
   ];
 

@@ -25,6 +25,8 @@ export interface TransaksiKeluarInput {
   userId: string;
   nominal_bayar: number;
   keterangan?: string;
+  pelanggan_id?: string | null;
+  nama_pelanggan?: string | null;
   items: ItemKeluarInput[];
 }
 
@@ -255,6 +257,8 @@ export async function prosesTransaksiKeluar(input: TransaksiKeluarInput) {
         grand_total: grandTotal,
         nominal_bayar: input.nominal_bayar,
         kembalian,
+        pelanggan_id: input.pelanggan_id || null,
+        nama_pelanggan: input.nama_pelanggan || "Umum",
         keterangan: input.keterangan || null,
         items: {
           create: rincianItems,
@@ -263,6 +267,7 @@ export async function prosesTransaksiKeluar(input: TransaksiKeluarInput) {
       include: {
         items: true,
         user: { select: { id: true, nama: true, username: true } },
+        pelanggan: true,
       },
     });
 

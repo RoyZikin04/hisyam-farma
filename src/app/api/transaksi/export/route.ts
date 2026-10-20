@@ -35,7 +35,14 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         user: { select: { nama: true } },
-        items: true,
+        pelanggan: true,
+        items: {
+          include: {
+            penjualan: {
+              select: { harga_pokok: true },
+            },
+          },
+        },
       },
       orderBy: { tanggal: "desc" },
     });

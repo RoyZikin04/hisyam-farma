@@ -22,6 +22,7 @@ import GrafikJenisHarga from "@/components/dashboard/GrafikJenisHarga";
 import GrafikTopBarang from "@/components/dashboard/GrafikTopBarang";
 import GrafikPerformaKasir from "@/components/dashboard/GrafikPerformaKasir";
 import TabelStokMenipis from "@/components/dashboard/TabelStokMenipis";
+import TabelMarginHarian from "@/components/dashboard/TabelMarginHarian";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStatsResult | null>(null);
@@ -318,6 +319,14 @@ export default function DashboardPage() {
           <GrafikPerformaKasir data={stats?.performaKasir || []} />
         </div>
       </div>
+
+      {/* Widget Laporan Margin & Mutasi Harian Per Tanggal */}
+      <TabelMarginHarian
+        data={stats?.rincianMarginHarian || []}
+        ringkasan={stats?.ringkasanMarginPeriode}
+        startDate={stats?.rentangInfo?.start || startDate}
+        endDate={stats?.rentangInfo?.end || endDate}
+      />
 
       {/* Widget Peringatan Stok Menipis */}
       <TabelStokMenipis
