@@ -192,6 +192,52 @@ export default function DaftarStrukPage() {
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        {/* Tab Cepat Filter Tipe Transaksi */}
+        <div className="flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100">
+          <button
+            type="button"
+            onClick={() => {
+              setTipe("");
+              setPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              tipe === ""
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Semua Transaksi
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTipe("KELUAR");
+              setPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              tipe === "KELUAR"
+                ? "bg-amber-600 text-white shadow-xs"
+                : "bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200"
+            }`}
+          >
+            <span>📤 Barang Keluar (Penjualan)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTipe("MASUK");
+              setPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              tipe === "MASUK"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200"
+            }`}
+          >
+            <span>📥 Barang Masuk (Restock)</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search Box */}
           <div className="relative">

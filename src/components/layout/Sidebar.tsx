@@ -7,6 +7,7 @@ import {
   Package,
   ShoppingCart,
   ArrowDownToLine,
+  ArrowUpFromLine,
   Receipt,
   FileSpreadsheet,
   Users,
@@ -49,6 +50,7 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
     { name: "Master Barang", href: "/barang", icon: Package },
     { name: "Data Pelanggan", href: "/pelanggan", icon: UserCheck },
     { name: "Barang Masuk", href: "/transaksi/masuk", icon: ArrowDownToLine },
+    { name: "Barang Keluar", href: "/transaksi/keluar", icon: ArrowUpFromLine },
     { name: "Kasir (POS)", href: "/transaksi/kasir", icon: ShoppingCart },
     { name: "Daftar Struk", href: "/struk", icon: Receipt },
     { name: "Import & Export", href: "/import-export", icon: FileSpreadsheet },
@@ -58,6 +60,7 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
 
   const kasirMenu = [
     { name: "Kasir (POS)", href: "/transaksi/kasir", icon: ShoppingCart },
+    { name: "Barang Keluar", href: "/transaksi/keluar", icon: ArrowUpFromLine },
     { name: "Data Pelanggan", href: "/pelanggan", icon: UserCheck },
     { name: "Daftar Struk Saya", href: "/struk", icon: Receipt },
   ];
